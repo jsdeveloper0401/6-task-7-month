@@ -1,68 +1,91 @@
-import { TextField, Button } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import { Modal, Box, Typography, TextField, Button } from "@mui/material";
 import { auth } from "@service";
-import { Formik, Form, ErrorMessage, Field } from 'formik';
-// import { ValidationForgotPassword } from "@validation";
-import {ForgotPasswordModal} from "@modal"
+import { useNavigate } from "react-router-dom";
 
-const Index = () => {
-	const [open, setOpen] = useState(false);
-	const [email,setEmail] = useState("")
-  const handleSubmit = async (values, { setSubmitting }) => {
-		setEmail(values.email)
-    try {
-      const response = await auth.forgot_password(values);
-      if (response.status === 200) {
-        setOpen(true);
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const ForgotPasswordModal = ({ open, handleClose, email }) => {
+    const [code, setCode] = useState("");
+    const [secondsLeft, setSecondsLeft] = useState(60);
+    const navigate = useNavigate();
 
-	return (
-		<>
-		<ForgotPasswordModal open={open} handleClose={() => setOpen(false)}  email={email}/>
-		<div className="w-full h-screen flex items-center justify-center">
-			<div className="w-full sm:w-[600px] p-5">
-				<h1 className='text-center my-6 text-[50px]'>Enter email...</h1>
-				<Formik
-					initialValues={{
-						email: ''
-					}}
-					validationSchema={ValidationForgotPassword}
-					onSubmit={handleSubmit}
-				>
-					{({ isSubmitting }) => (
-						<Form className='flex flex-col gap-2'>
-							<Field
-								as={TextField}
-								fullWidth
-								id="email"
-								label="Email"
-								variant="outlined"
-								type="email"
-								name="email"
-							/>
-							<ErrorMessage name="email" component="div" className="text-red-600" />
-							<Button
-								variant="contained"
-								disableElevation
-								type="submit"
-								fullWidth
-								disabled={isSubmitting}
-							>
-								Submit
-							</Button>
-						</Form>
-					)}
-				</Formik>
-			</div>
-		</div>
-		</>
-	);
+    useEffect(() => {
+        let timer = null;
+        if (open) {
+            timer = setInterval(() => {
+                setSecondsLeft((prevSeconds) => prevSeconds - 1);
+            }, 1000);
+        }
+        return () => {
+            if (timer) clearInterval(timer);
+        };
+    }, [open]);
+
+    useEffect(() => {
+        if (secondsLeft === 0) {
+            handleClose();
+        }
+    }, [secondsLeft, handleClose]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const payload = { code, email };
+            const response = await auth.auth_verify(payload);
+            if (response.status === 201) {
+                navigate("/signin");
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    return (
+        <Modal
+            keepMounted
+            open={open}
+            onClose={handleClose}
+            aria-labelledby="keep-mounted-modal-title"
+            aria-describedby="keep-mounted-modal-description">
+            <Box
+                sx={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    minWidth: 450,
+                    bgcolor: "background.paper",
+                    boxShadow: 24,
+                    p: 4,
+                }}>
+                <Typography
+                    id="keep-mounted-modal-title"
+                    className="text-center"
+                    variant="h6"
+                    component="h2">
+                    Parolni kiriting
+                </Typography>
+                <form onSubmit={handleSubmit}>
+                    <TextField
+                        fullWidth
+                        label="Parolni kiriting"
+                        id="fullWidth"
+                        sx={{ marginY: "20px" }}
+                        onChange={(e) => setCode(e.target.value)}
+                    />
+                    <Typography variant="body1" component="p" className="my-4">
+                        {`Time left: ${secondsLeft} seconds`}
+                    </Typography>
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth>
+                        Submit
+                    </Button>
+                </form>
+            </Box>
+        </Modal>
+    );
 };
 
-export default Index;
+export default ForgotPasswordModal;

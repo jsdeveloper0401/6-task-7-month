@@ -1,122 +1,157 @@
-import { TextField } from '@mui/material';
-import Button from '@mui/material/Button';
-import React, { useState } from 'react';
-import { auth } from "@service";
-import { SignUpModal } from '@modal';
+import React, { useState } from "react";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { TextField, IconButton, InputAdornment, Button } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { useMask } from "@react-input/mask";
 import { signUpValidationSchema } from "@validation";
-import { ErrorMessage, Field, Form, Formik } from 'formik';
-
+import { auth } from "@service";
+import SignUpModal from "../../components/modal/sign-up-modal";
 
 const Index = () => {
-  const [open, setOpen] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [modal, setModal] = useState(false);
+    const [email, setEmail] = useState("");
+    const inputRef = useMask({
+        mask: "+998 (__) ___-__-__",
+        replacement: { _: /\d/ },
+    });
 
-  const handleSubmit = async (values, { setSubmitting }) => {
-    try {
-      const response = await auth.sign_up(values);
-      if (response.status === 200) {
-        setOpen(true);
-        localStorage.setItem("email", values.email);
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    const initialValues = {
+        full_name: "",
+        email: "",
+        password: "",
+        phone_number: "",
+    };
 
-  return (
-      <>
-          <SignUpModal open={open} handleClose={() => setOpen(false)} />
-          <div className="w-full h-screen flex items-center justify-center">
-              <div className="w-full sm:w-[600px] p-5">
-                  <h1 className="text-center my-6 text-[50px]">Register</h1>
-                  <Formik
-                      initialValues={{
-                          email: "",
-                          full_name: "",
-                          password: "",
-                          phone_number: "",
-                      }}
-                      validationSchema={signUpValidationSchema}
-                      onSubmit={handleSubmit}
-                      id="submit">
-                      {({ isSubmitting }) => (
-                          <Form className="flex flex-col gap-2">
-                              <Field
-                                  as={TextField}
-                                  fullWidth
-                                  id="email"
-                                  label="Email"
-                                  variant="outlined"
-                                  type="email"
-                                  name="email"
-                              />
-                              <ErrorMessage
-                                  name="email"
-                                  component="div"
-                                  style={{ color: "red" }}
-                              />
+    const handleSubmit = async (values) => {
+        setEmail(values.email);
+        const phone_number = values.phone_number.replace(/\D/g, "");
+        const payload = { ...values, phone_number: `+${phone_number}` };
+        try {
+            const response = await auth.sign_up(payload);
+            response.status === 200 && setModal(true);
+        } catch (error) {
+            console.log(error);
+        }
+    };
 
-                              <Field
-                                  as={TextField}
-                                  fullWidth
-                                  id="full_name"
-                                  label="Full Name"
-                                  variant="outlined"
-                                  type="text"
-                                  name="full_name"
-                              />
-                              <ErrorMessage
-                                  name="full_name"
-                                  component="div"
-                                  style={{ color: "red" }}
-                              />
-
-                              <Field
-                                  as={TextField}
-                                  fullWidth
-                                  id="password"
-                                  label="Password"
-                                  variant="outlined"
-                                  type="password"
-                                  name="password"
-                              />
-                              <ErrorMessage
-                                  name="password"
-                                  component="div"
-                                  style={{ color: "red" }}
-                              />
-
-                              <Field
-                                  as={TextField}
-                                  fullWidth
-                                  id="phone_number"
-                                  label="Phone Number"
-                                  variant="outlined"
-                                  type="text"
-                                  name="phone_number"
-                              />
-                              <ErrorMessage
-                                  name="phone_number"
-                                  component="div"
-                                  style={{ color: "red" }}
-                              />
-
-                              <Button
-                                  variant="contained"
-                                  disableElevation
-                                  type="submit"
-                                  fullWidth
-                                  disabled={isSubmitting}>
-                                  Sign Up
-                              </Button>
-                          </Form>
-                      )}
-                  </Formik>
-              </div>
-          </div>
-      </>
-  );
+    return (
+        <>
+            <SignUpModal
+                open={modal}
+                handleClose={() => setModal(false)}
+                email={email}
+            />
+            <div className="h-screen flex items-center justify-center flex-col gap-8 p-5">
+                <h1 className="text-[35px] font-bold sm:text-[40px] md:text-[50px]">
+                    Ro'yxatdan o'tish
+                </h1>
+                <div className="max-w-[600px]">
+                    <Formik
+                        initialValues={initialValues}
+                        validationSchema={signUpValidationSchema}
+                        onSubmit={handleSubmit}>
+                        {({ isSubmitting }) => (
+                            <Form>
+                                <Field
+                                    name="full_name"
+                                    type="text"
+                                    as={TextField}
+                                    label="Ful Name"
+                                    fullWidth
+                                    margin="normal"
+                                    variant="outlined"
+                                    helperText={
+                                        <ErrorMessage
+                                            name="full_name"
+                                            component="p"
+                                            className="text-[red] text-[15px]"
+                                        />
+                                    }
+                                />
+                                <Field
+                                    name="email"
+                                    type="email"
+                                    as={TextField}
+                                    label="Email"
+                                    fullWidth
+                                    margin="normal"
+                                    variant="outlined"
+                                    helperText={
+                                        <ErrorMessage
+                                            name="email"
+                                            component="p"
+                                            className="text-[red] text-[15px]"
+                                        />
+                                    }
+                                />
+                                <Field
+                                    name="phone_number"
+                                    type="tel"
+                                    as={TextField}
+                                    label="Phone"
+                                    fullWidth
+                                    margin="normal"
+                                    variant="outlined"
+                                    inputRef={inputRef}
+                                    helperText={
+                                        <ErrorMessage
+                                            name="phone_number"
+                                            component="p"
+                                            className="text-[red] text-[15px]"
+                                        />
+                                    }
+                                />
+                                <Field
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    as={TextField}
+                                    label="Password"
+                                    fullWidth
+                                    margin="normal"
+                                    variant="outlined"
+                                    helperText={
+                                        <ErrorMessage
+                                            name="password"
+                                            component="p"
+                                            className="text-[red] text-[15px]"
+                                        />
+                                    }
+                                    InputProps={{
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={() =>
+                                                        setShowPassword(
+                                                            !showPassword
+                                                        )
+                                                    }
+                                                    edge="end">
+                                                    {showPassword ? (
+                                                        <VisibilityOff />
+                                                    ) : (
+                                                        <Visibility />
+                                                    )}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    color="primary"
+                                    disabled={isSubmitting}
+                                    fullWidth>
+                                    {isSubmitting ? "Submitting" : "Submit"}
+                                </Button>
+                            </Form>
+                        )}
+                    </Formik>
+                </div>
+            </div>
+        </>
+    );
 };
 
 export default Index;
